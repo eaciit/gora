@@ -43,6 +43,7 @@ func (q *Query) Cursor(in toolkit.M) dbflex.ICursor {
 	}
 	cursor.SetCountCommand(cq)
 
+	//fmt.Println("query: " + cmdtxt)
 	rows, err := q.db.Query(cmdtxt)
 	if rows == nil {
 		cursor.SetError(toolkit.Errorf("%s. SQL Command: %s", err.Error(), cmdtxt))
@@ -158,9 +159,35 @@ func (q *Query) SQL(string cmd, exec) dbflex.IQuery {
 }
 */
 
+func (q *Query) Templates() map[string]string {
+	return map[string]string{
+		string(dbflex.QuerySelect): "SELECT tmp.* FROM (SELECT {{.FIELDS}} FROM {{." + dbflex.ConfigKeyTableName + "}} " +
+			"{{." + dbflex.QueryWhere + "}} " +
+			"{{." + dbflex.QueryOrder + "}} " +
+			"{{." + dbflex.QueryGroup + "}}) tmp " +
+			"{{." + dbflex.QueryTake + "}}",
+		//dbflex.QueryWhere: "{{." + dbflex.QueryWhere + "}}",
+		dbflex.QueryTake:  "WHERE ROWNUM <= {{." + dbflex.QueryTake + "}}",
+		dbflex.QuerySkip:  "WHERE ROWNUM <  {{." + dbflex.QuerySkip + "}}",
+		dbflex.QueryGroup: "{{." + dbflex.QueryGroup + "}}",
+		dbflex.QueryOrder: "ORDER BY {{." + dbflex.QueryOrder + "}}",
+		dbflex.QueryInsert: "INSERT INTO {{." + dbflex.ConfigKeyTableName + "}} " +
+			"({{.FIELDS}}) VALUES ({{.VALUES}})",
+		dbflex.QueryUpdate: "UPDATE {{." + dbflex.ConfigKeyTableName + "}} " +
+			"SET {{.FIELDVALUES}} {{." + dbflex.QueryWhere + "}}",
+		dbflex.QueryDelete: "DELETE FROM {{." + dbflex.ConfigKeyTableName + "}} " +
+			"{{." + dbflex.QueryWhere + "}}",
+		dbflex.AggrMax:         "MAX({{.FIELD}})",
+		dbflex.AggrMin:         "MIN({{.FIELD}})",
+		string(dbflex.AggrSum): "SUM({{.FIELD}})",
+		dbflex.AggrCount:       "COUNT(*)",
+		dbflex.AggrAvg:         "AVG({{.FIELD}})",
+	}
+}
+
 func (qr Query) ValueToSQlValue(v interface{}) string {
 	if s, ok := v.(string); ok {
-		fmt.Println("datetime data: ", s)
+		//fmt.Println("datetime data: ", s)
 		if dt, err := time.Parse(time.RFC3339, s); err == nil {
 			return fmt.Sprintf("to_date('%s','yyyy-mm-dd hh24:mi:ss')", toolkit.Date2String(dt, "yyyy-MM-dd hh:mm:ss"))
 		} else {

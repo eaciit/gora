@@ -130,6 +130,48 @@ func TestQueryUsingM(t *testing.T) {
 	})
 }
 
+func TestQueryFilter(t *testing.T) {
+	cv.Convey("querying", t, func() {
+		conn, _ := connect()
+		defer conn.Close()
+
+		cmd := dbflex.From(tableModel).Select().Where(dbflex.And(dbflex.Gte("ID", "data-2"), dbflex.Lte("ID", "data-4")))
+		cur := conn.Cursor(cmd, nil)
+		cv.So(cur.Error(), cv.ShouldBeNil)
+
+		cv.Convey("validate", func() {
+			ms := []toolkit.M{}
+			err := cur.Fetchs(&ms, 0)
+			defer cur.Close()
+
+			cv.So(err, cv.ShouldBeNil)
+			cv.So(len(ms), cv.ShouldEqual, 3)
+		})
+	})
+}
+
+func TestQuerySortTake(t *testing.T) {
+	cv.Convey("querying", t, func() {
+		conn, _ := connect()
+		defer conn.Close()
+
+		cmd := dbflex.From(tableModel).Select().OrderBy("-ID").Take(3)
+		cur := conn.Cursor(cmd, nil)
+		cv.So(cur.Error(), cv.ShouldBeNil)
+
+		cv.Convey("validate", func() {
+			ms := []toolkit.M{}
+			err := cur.Fetchs(&ms, 0)
+			defer cur.Close()
+
+			cv.So(err, cv.ShouldBeNil)
+			cv.So(len(ms), cv.ShouldEqual, 3)
+
+			cv.So(ms[2].GetString("ID"), cv.ShouldEqual, "data-2")
+		})
+	})
+}
+
 func TestQueryUpdate(t *testing.T) {
 	cv.Convey("querying data", t, func() {
 		c, _ := connect()
@@ -146,7 +188,7 @@ func TestQueryUpdate(t *testing.T) {
 			cv.So(err, cv.ShouldBeNil)
 			cv.So(len(results), cv.ShouldEqual, 1)
 
-			dataInt := toolkit.RandInt(100)
+			dataInt := toolkit.RandInt(100) + 500
 			results[0]["DATAINT"] = dataInt
 
 			cmdUpdate := dbflex.From(tableModel).Update().Where(dbflex.Eq("ID", "data-3"))
@@ -169,4 +211,5 @@ func TestQueryUpdate(t *testing.T) {
 
 /*
 INSERT INTO TestModel (ID,Title,DataInt,DataDec,Created) VALUES ('data-0','Data title 0',31,27.150000,to_date('2019-02-23 12:54:18','yyyy-mm-dd hh24:mi:ss'))
+SELECT a.* FROM (SELECT tmp.* FROM (SELECT * FROM TestModel  ORDER BY ID desc ) tmp WHERE ROWNUM <  3) a WHERE ROWNUM <= 1;
 */
