@@ -160,14 +160,19 @@ func (q *Query) SQL(string cmd, exec) dbflex.IQuery {
 
 func (qr Query) ValueToSQlValue(v interface{}) string {
 	if s, ok := v.(string); ok {
-		return toolkit.Sprintf("'%s'", s)
+		fmt.Println("datetime data: ", s)
+		if dt, err := time.Parse(time.RFC3339, s); err == nil {
+			return fmt.Sprintf("to_date('%s','yyyy-mm-dd hh24:mi:ss')", toolkit.Date2String(dt, "yyyy-MM-dd hh:mm:ss"))
+		} else {
+			return toolkit.Sprintf("'%s'", s)
+		}
 	} else if _, ok := v.(int); ok {
 		return toolkit.Sprintf("%d", v)
 	} else if _, ok = v.(float64); ok {
 		return toolkit.Sprintf("%f", v)
 	} else if _, ok = v.(time.Time); ok {
-		dt := toolkit.Date2String(v.(time.Time), "'yyyy-MM-dd hh:mm:ss'")
-		return fmt.Sprintf("to_date(%s,'yyyy-mm-dd hh24:mi:ss')", dt)
+		dt := toolkit.Date2String(v.(time.Time), "yyyy-MM-dd hh:mm:ss")
+		return fmt.Sprintf("to_date('%s','yyyy-mm-dd hh24:mi:ss')", dt)
 	} else if b, ok := v.(bool); ok {
 		if b {
 			return "1"

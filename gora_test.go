@@ -130,6 +130,43 @@ func TestQueryUsingM(t *testing.T) {
 	})
 }
 
+func TestQueryUpdate(t *testing.T) {
+	cv.Convey("querying data", t, func() {
+		c, _ := connect()
+		defer c.Close()
+
+		cmdSelect := dbflex.From(tableModel).Select().Where(dbflex.Eq("ID", "data-3"))
+		cursor := c.Cursor(cmdSelect, nil)
+		cv.So(cursor.Error(), cv.ShouldBeNil)
+		defer cursor.Close()
+
+		cv.Convey("update result", func() {
+			results := []toolkit.M{}
+			err := cursor.Fetchs(&results, 0)
+			cv.So(err, cv.ShouldBeNil)
+			cv.So(len(results), cv.ShouldEqual, 1)
+
+			dataInt := toolkit.RandInt(100)
+			results[0]["DATAINT"] = dataInt
+
+			cmdUpdate := dbflex.From(tableModel).Update().Where(dbflex.Eq("ID", "data-3"))
+			_, err = c.Execute(cmdUpdate, toolkit.M{}.Set("data", results[0]))
+			cv.So(err, cv.ShouldBeNil)
+
+			cv.Convey("validate", func() {
+				cur2 := c.Cursor(cmdSelect, nil)
+				defer cur2.Close()
+
+				results2 := []toolkit.M{}
+				err = cur2.Fetchs(&results2, 0)
+				cv.So(err, cv.ShouldBeNil)
+				cv.So(len(results2), cv.ShouldEqual, 1)
+				cv.So(results2[0].GetInt("DATAINT"), cv.ShouldEqual, dataInt)
+			})
+		})
+	})
+}
+
 /*
 INSERT INTO TestModel (ID,Title,DataInt,DataDec,Created) VALUES ('data-0','Data title 0',31,27.150000,to_date('2019-02-23 12:54:18','yyyy-mm-dd hh24:mi:ss'))
 */
