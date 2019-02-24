@@ -12,8 +12,7 @@ type Cursor struct {
 	fieldTypes []string
 }
 
-func (c *Cursor) Serialize(
-	dataList, fieldMap toolkit.M, fieldValues []interface{}, dest interface{}) error {
+func (c *Cursor) Serialize(dest interface{}) error {
 	var err error
 	mobj := toolkit.M{}
 	toolkit.Serde(dest, &mobj, "")
